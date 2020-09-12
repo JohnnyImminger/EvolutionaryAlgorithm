@@ -1,53 +1,65 @@
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.*;
+import java.util.concurrent.*;
 
 public class TestSuite {
-    public static void main(String[] args) {
-        ConcurrentLinkedQueue<Integer> results = new ConcurrentLinkedQueue<>();
-        ArrayList<Thread> threads = new ArrayList<>();
-        for (int i = 0; i < 1; i++) {
-            Thread t = new Thread(() -> {
-                Algorithm alg = new Algorithm();
-                alg.run();
-                results.add(alg.getIteration());
-            });
-            threads.add(t);
-            t.start();
+
+    private static Map<Settings, ArrayList<Statistics>> results = new HashMap<>();
+    private static final ThreadPoolExecutor service = new ThreadPoolExecutor(10, 30, 1000, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>());
+
+    public static void main(String[] args) throws InterruptedException {
+        /*
+        for (int i = 10; i < 18; i+=2) {
+            runWith(new Settings(i, 1000, 0.8, 0.3, 0.1, 0.8, 1), 20);
+            runWith(new Settings(i, 1000, 0.6, 0.3, 0.1, 0.8, 1), 20);
+            runWith(new Settings(i, 1000, 0.8, 0.0, 0.0, 0.8, 1), 20);
+            runWith(new Settings(i, 1000, 0.8, 0.3, 0.1, 0.2, 1), 20);
+            runWith(new Settings(i, 1000, 0.8, 0.3, 0.1, 0.4, 1), 20);
+            runWith(new Settings(i, 1000, 0.8, 0.3, 0.1, 0.6, 1), 20);
         }
-        for (Thread i: threads) {
-            try {
-                i.join();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
-        System.out.println("Average iterations: " + results.stream().mapToInt(i -> i).sum() / results.size());
+         */
+
+        runWith(new Settings(26, 10000, 0.8, 0.3, 0.1, 0.8, 1), 10);
+        runWith(new Settings(28, 10000, 0.8, 0.3, 0.1, 0.8, 1), 10);
+        runWith(new Settings(30, 10000, 0.8, 0.3, 0.1, 0.8, 1), 10);
+
+
+        service.shutdown();
+        service.awaitTermination(60, TimeUnit.MINUTES);
+        showResults();
     }
-    private static void writeResults(int iterations) {
-        File file = new File("output/run");
-        try(BufferedWriter br = new BufferedWriter(new FileWriter(file))) {
-            br.write("n = " + Settings.n);
-            br.newLine();
-            br.write("populationSize = " + Settings.populationSize);
-            br.newLine();
-            br.write("mutationRate1 = " + Settings.mutationRate1);
-            br.newLine();
-            br.write("mutationRate2 = " + Settings.mutationRate2);
-            br.newLine();
-            br.write("mutationRate3 = " + Settings.mutationRate3);
-            br.newLine();
-            br.write("crossoverRate = " + Settings.crossoverRate);
-            br.newLine();
-            br.write("amountOfSolutions = " + Settings.amountOfSolutions);
-            br.newLine();
-            br.write("iterations needed: " + iterations);
-            br.newLine();
-        } catch (IOException e) {
-            e.printStackTrace();
+
+    private static void runWith(Settings settings, int howOften) {
+        for (int i = 0; i < howOften; i++) {
+            service.execute(new Algorithm(settings));
+        }
+    }
+
+    private static void showResults() {
+        List<Settings> keys = new ArrayList<>(results.keySet());
+        Collections.sort(keys);
+        for (Settings key: keys) {
+            ArrayList<Statistics> list = results.get(key);
+            double averageIterations = list.stream().mapToInt(s -> s.iterations).average().getAsDouble();
+            System.out.println(key);
+            System.out.println("Average iterations: " + averageIterations);
+            System.out.println();
+        }
+        List<Runnable> uncompleted = service.shutdownNow();
+        System.out.println("Uncompleted tasks: " + uncompleted.size());
+        if(uncompleted.size() == 0) return;
+        System.out.println("Settings:");
+        for (Runnable task: uncompleted) {
+            System.out.println(((Algorithm) task).getSettings());
+        }
+    }
+
+    public static synchronized void returnStatistics(Statistics s) {
+        if(results.containsKey(s.settings)) {
+            results.get(s.settings).add(s);
+        } else {
+            ArrayList<Statistics> statistics = new ArrayList<>(10);
+            statistics.add(s);
+            results.put(s.settings, statistics);
         }
     }
 }

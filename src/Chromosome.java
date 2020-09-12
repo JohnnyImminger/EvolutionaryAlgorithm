@@ -8,9 +8,11 @@ import java.util.Collections;
  */
 public class Chromosome implements Comparable<Chromosome>{
     private final int[] queens;
+    private final Settings settings;
 
-    public Chromosome(int[] queens) {
+    public Chromosome(int[] queens, Settings settings) {
         this.queens = queens;
+        this.settings = settings;
     }
 
     @Override
@@ -34,9 +36,9 @@ public class Chromosome implements Comparable<Chromosome>{
     }
 
     public void mutate() {
-        int index1 = (int) (Math.random() * Settings.n);
-        int index2 = (int) (Math.random() * Settings.n);
-        while (index1 == index2) index2 = (int) (Math.random() * Settings.n);
+        int index1 = (int) (Math.random() * settings.getN());
+        int index2 = (int) (Math.random() * settings.getN());
+        while (index1 == index2) index2 = (int) (Math.random() * settings.getN());
         int temp = queens[index1];
         queens[index1] = queens[index2];
         queens[index2] = temp;
@@ -44,12 +46,12 @@ public class Chromosome implements Comparable<Chromosome>{
 
     public String draw() {
         ArrayList<Point> positions = new ArrayList<>();
-        for (int i = 0; i < Settings.n; i++) {
+        for (int i = 0; i < settings.getN(); i++) {
             positions.add(new Point(i, queens[i]));
         }
         StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < Settings.n; i++) {
-            for (int j = 0; j < Settings.n; j++) sb.append(positions.contains(new Point(i,j)) ? "# " : "_ ");
+        for (int i = 0; i < settings.getN(); i++) {
+            for (int j = 0; j < settings.getN(); j++) sb.append(positions.contains(new Point(i,j)) ? "# " : "_ ");
             sb.append('\n');
         }
         return sb.toString();
@@ -60,8 +62,8 @@ public class Chromosome implements Comparable<Chromosome>{
     }
     public int getFitness() {
         int fitness = 0;
-        for (int i = 0; i < Settings.n-1; i++) {
-            for (int j = i; j < Settings.n; j++) {
+        for (int i = 0; i < settings.getN()-1; i++) {
+            for (int j = i; j < settings.getN(); j++) {
                 if (Math.abs((double)(i - j)/(queens[i] - queens[j])) == 1) {
                     fitness++;
                 }
@@ -70,12 +72,12 @@ public class Chromosome implements Comparable<Chromosome>{
         return fitness;
     }
 
-    public static Chromosome create() {
-        ArrayList<Integer> queens = new ArrayList<>(Settings.n);
-        for (int i = 0; i < Settings.n; i++) {
+    public static Chromosome create(Settings settings) {
+        ArrayList<Integer> queens = new ArrayList<>(settings.getN());
+        for (int i = 0; i < settings.getN(); i++) {
             queens.add(i);
         }
         Collections.shuffle(queens);
-        return new Chromosome(queens.stream().mapToInt(i -> i).toArray());
+        return new Chromosome(queens.stream().mapToInt(i -> i).toArray(), settings);
     }
 }
