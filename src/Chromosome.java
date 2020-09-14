@@ -4,7 +4,7 @@ import java.util.Arrays;
 import java.util.Collections;
 
 /**
- * Representation: array of integers, index represents the column, the integer represents the row
+ * Representation: array of integers, index represents the column, the stored value represents the row
  */
 public class Chromosome implements Comparable<Chromosome>{
     private final int[] queens;
